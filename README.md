@@ -36,7 +36,7 @@ python -m pip install -r requirements.txt
 python seed.py
 ```
 
-The script reads `DATABASE_URL` from `.env`, creates the schema if needed, and inserts menu items that are missing. It does not create sample orders, sales, customers, or other business history. Existing menu records are left as they are.
+The script reads `DATABASE_URL` from `.env`, creates the schema if needed, and inserts menu items that are missing and adds image references for the included catalog where they are blank. It does not create sample orders, sales, customers, or other business history. Existing names, categories, prices, and availability are preserved.
 
 ## Main files
 
@@ -44,6 +44,9 @@ The script reads `DATABASE_URL` from `.env`, creates the schema if needed, and i
 - `app/api/dashboard/route.ts` — database reads for menu, orders, and metrics
 - `app/api/orders/route.ts` — order creation and status updates
 - `lib/db.ts` — MySQL pool and schema setup
-- `seed.py` — explicit menu catalog seeding
+- `seed.py` — explicit menu catalog and product image reference seeding
+- `public/products/cafe-menu-sheet.png` — generated cafe product photography
 - `requirements.txt` — Python MySQL driver
 - `.env` — local connection string placeholder (ignored by Git)
+
+

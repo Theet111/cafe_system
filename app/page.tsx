@@ -1,17 +1,27 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react';
 
-type MenuItem = { id: number; name: string; category: string; price: number; available: boolean };
+type MenuItem = { id: number; name: string; category: string; price: number; imageUrl: string | null; available: boolean };
 type Order = { id: string; table: string; items: string; total: number; status: 'Preparing' | 'Ready' | 'Served'; time: string };
-type PopularItem = { name: string; category: string | null; quantity: number };
+type PopularItem = { name: string; category: string | null; imageUrl: string | null; quantity: number };
 type Dashboard = { menu: MenuItem[]; orders: Order[]; metrics: { sales: number; orders: number; average: number; active: number }; popular: PopularItem[] };
 type CartItem = MenuItem & { qty: number };
 
 const emptyDashboard: Dashboard = { menu: [], orders: [], metrics: { sales: 0, orders: 0, average: 0, active: 0 }, popular: [] };
 const money = (value: number) => `₹${value.toLocaleString('en-IN')}`;
-const categoryIcons: Record<string, string> = { Coffee: '◉', Tea: '◌', Bakery: '▱', Kitchen: '⌂' };
-const iconFor = (category: string) => categoryIcons[category] ?? '·';
+const productImageStyle = (imageUrl?: string | null): CSSProperties => {
+  if (!imageUrl) return {};
+  const [source, tileValue] = imageUrl.split('#');
+  const tile = Number(tileValue);
+  if (!Number.isInteger(tile) || tile < 0 || tile > 7) {
+    return { backgroundImage: `url("${source}")`, backgroundSize: 'cover', backgroundPosition: 'center' };
+  }
+  return {
+    backgroundImage: `url("${source}")`, backgroundSize: '400% 200%',
+    backgroundPosition: `${(tile % 4) * 100 / 3}% ${Math.floor(tile / 4) * 100}%`,
+  };
+};
 
 export default function Home() {
   const [section, setSection] = useState('Overview');
@@ -100,9 +110,9 @@ export default function Home() {
             </div>
             <div className="dashboard-grid">
               <section className="panel orders-panel" id="orders-section"><div className="panel-head"><div><h2>Orders</h2><p>Recent orders from your cafe</p></div><button className="text-button" onClick={() => { setSection('Orders'); void loadData(); }}>Refresh list <span>↻</span></button></div><div className="orders-table"><div className="table-header"><span>ORDER</span><span>ITEMS</span><span>STATUS</span><span></span></div>{loading ? <div className="empty-state">Loading orders…</div> : data.orders.length ? data.orders.map((order) => <div className="order-row" key={order.id}><div className="order-ident"><strong>{order.id}</strong><small>{order.table} · {order.time}</small></div><div className="order-items">{order.items}</div><span className={`status-pill ${order.status.toLowerCase()}`}><i></i>{order.status}</span><button className="row-action" title={`Advance ${order.id} status`} onClick={() => void advanceOrder(order)}>···</button></div>) : <div className="empty-state">No orders in the database.</div>}</div><div className="orders-footer"><span><i className="green-dot"></i> {connected ? 'Order data synced with MySQL' : 'Waiting for database connection'}</span></div></section>
-              <section className="panel popular-panel"><div className="panel-head"><div><h2>Popular items</h2><p>Ranked by orders in the last 7 days</p></div></div><div className="popular-list">{loading ? <div className="empty-state">Loading menu activity…</div> : data.popular.length ? data.popular.map((item) => <div className="popular-item" key={item.name}><div className="food-art">{iconFor(item.category ?? '')}</div><div className="popular-copy"><strong>{item.name}</strong><small>{item.category ?? 'Uncategorized'}</small></div><div className="popular-count"><strong>{item.quantity}</strong><small>ordered</small></div></div>) : <div className="empty-state">No order history yet.</div>}</div></section>
+              <section className="panel popular-panel"><div className="panel-head"><div><h2>Popular items</h2><p>Ranked by orders in the last 7 days</p></div></div><div className="popular-list">{loading ? <div className="empty-state">Loading menu activity…</div> : data.popular.length ? data.popular.map((item) => <div className="popular-item" key={item.name}><div className="food-art" role="img" aria-label={item.name} style={productImageStyle(item.imageUrl)} /><div className="popular-copy"><strong>{item.name}</strong><small>{item.category ?? 'Uncategorized'}</small></div><div className="popular-count"><strong>{item.quantity}</strong><small>ordered</small></div></div>) : <div className="empty-state">No order history yet.</div>}</div></section>
             </div>
-            <section className="panel menu-panel" id="menu-section"><div className="panel-head menu-head"><div><div className="eyebrow">POINT OF SALE</div><h2>Menu</h2><p>Menu items are loaded from MySQL.</p></div><label className="search-field"><span>⌕</span><input id="menu-search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search menu" /></label></div><div className="category-row">{categories.map((item) => <button className={category === item ? 'selected' : ''} key={item} onClick={() => setCategory(item)}>{item}</button>)}<span className="category-spacer"></span><span className="menu-count">{loading ? 'Loading…' : `${filtered.length} items`}</span></div><div className="menu-layout"><div className="menu-items">{loading ? <div className="empty-state">Loading menu…</div> : noMenu ? <div className="empty-state">Menu is empty. Run <code>python seed.py</code> to add your catalog.</div> : filtered.length ? filtered.map((item) => <button className="menu-item" key={item.id} onClick={() => addToCart(item.id)}><div className="menu-art">{iconFor(item.category)}<span>＋</span></div><div className="menu-item-copy"><span>{item.category.toUpperCase()}</span><strong>{item.name}</strong><b>{money(item.price)}</b></div></button>) : <div className="empty-state">No matching menu items.</div>}</div><aside className="cart-box"><div className="cart-title"><div><strong>Current order</strong><small>Order details</small></div><button onClick={() => setCart({})}>Clear</button></div><label className="table-input">Table or order label<input value={tableName} onChange={(event) => setTableName(event.target.value)} placeholder="e.g. Table 4 or Takeaway" /></label>{cartItems.length ? <div className="cart-lines">{cartItems.map((item: CartItem) => <div className="cart-line" key={item.id}><span>{iconFor(item.category)}</span><div><strong>{item.name}</strong><small>{money(item.price)} each</small></div><div className="qty-control"><button onClick={() => setCart((current) => ({ ...current, [item.id]: Math.max(0, current[item.id] - 1) }))}>−</button><b>{item.qty}</b><button onClick={() => addToCart(item.id)}>+</button></div><b>{money(item.price * item.qty)}</b></div>)}</div> : <div className="empty-cart"><span>＋</span><b>Your order is empty</b><small>Select a menu item to begin</small></div>}<div className="cart-total"><strong>Total <b>{money(cartTotal)}</b></strong></div><button className="checkout-button" disabled={!cartCount || !tableName.trim() || saving || !connected} onClick={() => void placeOrder()}>{saving ? 'Saving…' : 'Save order'}<span>→</span></button></aside></div></section>
+            <section className="panel menu-panel" id="menu-section"><div className="panel-head menu-head"><div><div className="eyebrow">POINT OF SALE</div><h2>Menu</h2><p>Menu items are loaded from MySQL.</p></div><label className="search-field"><span>⌕</span><input id="menu-search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search menu" /></label></div><div className="category-row">{categories.map((item) => <button className={category === item ? 'selected' : ''} key={item} onClick={() => setCategory(item)}>{item}</button>)}<span className="category-spacer"></span><span className="menu-count">{loading ? 'Loading…' : `${filtered.length} items`}</span></div><div className="menu-layout"><div className="menu-items">{loading ? <div className="empty-state">Loading menu…</div> : noMenu ? <div className="empty-state">Menu is empty. Run <code>python seed.py</code> to add your catalog.</div> : filtered.length ? filtered.map((item) => <button className="menu-item" key={item.id} onClick={() => addToCart(item.id)}><div className="menu-art" role="img" aria-label={item.name} style={productImageStyle(item.imageUrl)}><span>+</span></div><div className="menu-item-copy"><span>{item.category.toUpperCase()}</span><strong>{item.name}</strong><b>{money(item.price)}</b></div></button>) : <div className="empty-state">No matching menu items.</div>}</div><aside className="cart-box"><div className="cart-title"><div><strong>Current order</strong><small>Order details</small></div><button onClick={() => setCart({})}>Clear</button></div><label className="table-input">Table or order label<input value={tableName} onChange={(event) => setTableName(event.target.value)} placeholder="e.g. Table 4 or Takeaway" /></label>{cartItems.length ? <div className="cart-lines">{cartItems.map((item: CartItem) => <div className="cart-line" key={item.id}><span className="cart-image" role="img" aria-label={item.name} style={productImageStyle(item.imageUrl)} /><div><strong>{item.name}</strong><small>{money(item.price)} each</small></div><div className="qty-control"><button onClick={() => setCart((current) => ({ ...current, [item.id]: Math.max(0, current[item.id] - 1) }))}>−</button><b>{item.qty}</b><button onClick={() => addToCart(item.id)}>+</button></div><b>{money(item.price * item.qty)}</b></div>)}</div> : <div className="empty-cart"><span>＋</span><b>Your order is empty</b><small>Select a menu item to begin</small></div>}<div className="cart-total"><strong>Total <b>{money(cartTotal)}</b></strong></div><button className="checkout-button" disabled={!cartCount || !tableName.trim() || saving || !connected} onClick={() => void placeOrder()}>{saving ? 'Saving…' : 'Save order'}<span>→</span></button></aside></div></section>
             <footer className="page-footer"><span>Bean &amp; Board</span><span>Live data from MySQL</span></footer>
           </div>
         </section>
@@ -111,5 +121,6 @@ export default function Home() {
     </main>
   );
 }
+
 
 

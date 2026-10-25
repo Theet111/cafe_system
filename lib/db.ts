@@ -16,7 +16,7 @@ export async function ensureSchema() {
       const db = getPool();
       await db.execute(`CREATE TABLE IF NOT EXISTS cafe_products (
         id INT PRIMARY KEY AUTO_INCREMENT, name VARCHAR(120) NOT NULL, category VARCHAR(60) NOT NULL,
-        price DECIMAL(10,2) NOT NULL, available BOOLEAN NOT NULL DEFAULT TRUE,
+        price DECIMAL(10,2) NOT NULL, image_url VARCHAR(255) NULL, available BOOLEAN NOT NULL DEFAULT TRUE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )`);
       await db.execute(`CREATE TABLE IF NOT EXISTS cafe_orders (
@@ -34,3 +34,4 @@ export async function ensureSchema() {
   }
   await schemaReady;
 }
+
