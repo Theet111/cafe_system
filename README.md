@@ -1,36 +1,49 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Bean & Board Cafe OS
 
-## Getting Started
+A minimal cafe point-of-sale and operations dashboard built with Next.js, React, and MySQL. Menu items, orders, order statuses, sales totals, and popular items are read from the configured database. The app does not include browser-side sample records.
 
-First, run the development server:
+## Run locally
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Connect local MySQL
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Create the database once in MySQL:
 
-## Learn More
+```sql
+CREATE DATABASE cafe_management;
+```
 
-To learn more about Next.js, take a look at the following resources:
+Add your local connection string to `.env` and restart the development server:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```env
+DATABASE_URL="mysql://USER:PASSWORD@localhost:3306/cafe_management"
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+The app creates the database tables when it first connects. It does not add records automatically. If the database is empty, the dashboard shows empty states.
 
-## Deploy on Vercel
+## Seed the menu with Python
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Edit `MENU_ITEMS` in `seed.py` to match your cafe, then run:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```powershell
+python -m pip install -r requirements.txt
+python seed.py
+```
+
+The script reads `DATABASE_URL` from `.env`, creates the schema if needed, and inserts menu items that are missing. It does not create sample orders, sales, customers, or other business history. Existing menu records are left as they are.
+
+## Main files
+
+- `app/page.tsx` — database-driven cafe dashboard and point-of-sale UI
+- `app/api/dashboard/route.ts` — database reads for menu, orders, and metrics
+- `app/api/orders/route.ts` — order creation and status updates
+- `lib/db.ts` — MySQL pool and schema setup
+- `seed.py` — explicit menu catalog seeding
+- `requirements.txt` — Python MySQL driver
+- `.env` — local connection string placeholder (ignored by Git)
