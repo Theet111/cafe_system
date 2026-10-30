@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Generated academic report kept locally outside the commit
+/Cafe_Management_Project_Report_Formatted.docx
